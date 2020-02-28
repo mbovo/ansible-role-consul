@@ -1,0 +1,17 @@
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+    192.168.70.10:
+
+  children:
+    consul_servers:
+      hosts:
+        192.168.70.10
+    consul_clients:
+      hosts:
+        192.168.70.10
+    test:
+      children:
+        consul_servers:
+        consul_clients:

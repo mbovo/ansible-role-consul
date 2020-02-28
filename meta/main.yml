@@ -1,0 +1,42 @@
+galaxy_info:
+  author: Manuel Bovo
+  description: Unofficial Hashicorp Consul HA installer
+
+  license: GPL-3.0-only
+  min_ansible_version: 2.4
+  role_name: consul-ha
+
+  platforms:
+    - name: EL
+      versions:
+      - 6
+      - 7
+    - name: Fedora
+      versions:
+      - all
+    - name: Ubuntu
+      versions:
+    #  - all
+    #  - lucid
+    #  - maverick
+    #  - natty
+    #  - oneiric
+    #  - precise
+    #  - quantal
+    #  - raring
+    #  - saucy
+    # - trusty
+      - xenial
+    #- name: Debian
+    #  versions:
+    #  - all
+    #  - etch
+    #  - lenny
+    #  - squeeze
+    #  - wheez
+
+  galaxy_tags: 
+    - networking
+    - consul
+
+dependencies: []

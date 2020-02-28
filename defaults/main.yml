@@ -1,0 +1,9 @@
+---
+
+consul_version: "1.7.0"
+consul_sha256: "sha256:efc3e618e0f9b0e397bc4c8392d871d81c40362413a7eadcf24094a617eb39e9"
+
+consul_datacenter: dc1
+consul_data_dir: /opt/consul
+
+consul_use_acl: false

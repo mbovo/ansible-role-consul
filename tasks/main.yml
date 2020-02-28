@@ -1,0 +1,162 @@
+---
+# tasks file for ansible-role-consul
+
+- name: Install Necessary Packages
+  package:
+    name:
+      - wget
+      - unzip
+    state: latest
+  tags:
+    - prepare
+
+- name: Create the Consul Group
+  group:
+    name: consul
+    system: yes
+  tags:
+    - prepare
+
+- name: Create the Consul User
+  user:
+    name: consul
+    system: yes
+    group: consul
+    createhome: no
+    home: /etc/consul.d
+    shell: /bin/false
+    comment: A service account to run Consul
+  tags:
+    - prepare
+
+# fetch url
+- name: "Install Consul {{consul_version}}"
+  block:
+    - name: "Download"
+      get_url:
+        url: "{{ consul_download_url }}"
+        dest: "/tmp/consul.zip"
+        checksum: "{{consul_sha256}}"
+        owner: root
+        group: root
+        mode: 0744
+        seuser: system_u
+        serole: object_r
+        setype: usr_t
+        selevel: s0
+
+    - name: "Extract"
+      unarchive:
+        src: "/tmp/consul.zip"
+        dest: "/usr/local/bin"
+        remote_src: yes
+
+    - name: Set consul Permissions
+      file:
+        path: /usr/local/bin/consul
+        state: file
+        owner: root
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: bin_t
+        selevel: s0
+  tags:
+    - install
+
+- name: Create the Consul Files and Folders
+  block:
+    - name: Main Folder
+      file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: etc_t
+        selevel: s0
+
+    - name: Empty TLS Folder
+      file:
+        path: /etc/consul.d/tls
+        state: absent
+      tags:
+        - tls
+
+    - name: TLS folder
+      file:
+        path: /etc/consul.d/tls
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: etc_t
+        selevel: s0
+
+    - name: Data Folder
+      file:
+        path: "{{consul_data_dir}}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: cert_t
+        selevel: s0
+  tags:
+    - prepare
+
+- name: Add the consul Service
+  copy:
+    src: consul.service
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: consul
+    mode: 0755
+    seuser: system_u
+    serole: object_r
+    setype: systemd_unit_file_t
+    selevel: s0
+  tags:
+    - install
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+  tags:
+    - install
+
+- name: "Generate TLS certificates if not provided"
+  include_tasks: generate_certs.yml
+  when: consul_ca_cert is undefined or consul_server_cert is undefined or consul_server_key is undefined
+  tags:
+    - tls
+
+- name: Generate encryption key
+  shell: consul keygen
+  register: consul_key
+  ignore_errors: yes
+  tags:
+    - configure
+
+- set_fact:
+    consul_encrypt_key: "{{ consul_key.stdout }}"
+  when: not consul_key.failed
+  tags:
+    - configure
+
+- name: Apply minimal configuration
+  template:
+    src: consul.hcl.j2
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul
+    mode: 0640
+  tags:
+    - configure

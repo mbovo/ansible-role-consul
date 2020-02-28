@@ -1,0 +1,15 @@
+
+
+- name: "Generate CA cert/key"
+  shell: consul tls ca create
+  args:
+    chdir: /etc/consul.d/tls
+  tags:
+    - tls
+
+- name: "Generate Server cert/key"
+  shell: consul tls cert create -server -additional-ipaddress="{{ inventory_hostname }}" -dc="{{ consul_datacenter }}"
+  args:
+    chdir: /etc/consul.d/tls
+  tags:
+    - tls
