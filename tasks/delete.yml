@@ -1,0 +1,33 @@
+---
+# tasks file for ansible-role-consul
+- name: Restart Consul
+  systemd:
+    name: consul
+    state: stopped
+  ignore_errors: true
+
+- name: Delete the Consul Files and Folders
+  block:
+    - name: Main Folder
+      file:
+        path: /etc/consul.d
+        state: absent
+
+    - name: Data Folder
+      file:
+        path: "{{consul_data_dir}}"
+        state: absent
+
+    - name: consul service
+      file:
+        path: /etc/systemd/system/consul.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Delete consul binary
+      file:
+        path: /usr/local/bin/consul
+        state: absent

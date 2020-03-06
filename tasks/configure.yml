@@ -1,0 +1,59 @@
+
+- name: "Verify presence of an old configuration"
+  stat:
+    path: /etc/consul.d/consul.json
+  register: cfg
+  tags:
+    - configure
+
+- name: "Generate TLS certificates"
+  include_tasks: generate_certs.yml
+  when: consul_use_tls|bool and consul_tls_generate|bool
+  tags:
+    - tls
+
+- name: "Load provided TLS certificates"
+  include_tasks: load_certs.yml
+  when: consul_use_tls|bool and consul_tls_provided|bool
+  tags:
+    - tls
+
+- name: Generate encryption key
+  shell: consul keygen
+  register: consul_key
+  ignore_errors: yes
+  run_once: true
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  when: not cfg.stat.exists
+  tags:
+    - configure
+
+- name: "Retrieve old encryption key"
+  shell: cat /etc/consul.d/consul.json | grep encrypt | sed 's/^.*"\(.*\)".*$/\1/g;'
+  register: consul_key
+  ignore_errors: yes
+  run_once: true
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  when: cfg.stat.exists
+  tags:
+    - configure
+
+- name: "Set encryption key"
+  set_fact:
+    consul_encrypt_key: "{{ consul_key.stdout }}"
+  when: not consul_key.failed
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  run_once: true
+  tags:
+    - configure
+
+- name: Apply minimal configuration
+  template:
+    src: consul.json.j2
+    dest: /etc/consul.d/consul.json
+    owner: consul
+    group: consul
+    mode: 0640
+  notify: Restart Consul
+  tags:
+    - configure

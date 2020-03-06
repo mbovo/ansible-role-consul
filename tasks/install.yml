@@ -1,0 +1,148 @@
+---
+# tasks file for ansible-role-consul
+
+- name: Install Necessary Packages
+  package:
+    name:
+      - wget
+      - unzip
+    state: latest
+  tags:
+    - prepare
+
+- name: Create the Consul Group
+  group:
+    name: consul
+    system: yes
+  tags:
+    - prepare
+
+- name: Create the Consul User
+  user:
+    name: consul
+    system: yes
+    group: consul
+    createhome: no
+    home: /etc/consul.d
+    shell: /bin/false
+    comment: A service account to run Consul
+  tags:
+    - prepare
+
+# fetch url
+- name: "Install Consul {{consul_version}}"
+  block:
+    - name: "Download consul binary"
+      get_url:
+        url: "{{ consul_download_url }}"
+        dest: "{{role_path}}/files/consul.zip"
+        checksum: "{{consul_sha256}}"
+      run_once: true
+      delegate_to: localhost
+
+    - name: "Upload binary to host"
+      copy:
+        src: consul.zip
+        dest: /tmp/consul.zip
+        owner: root
+        group: root
+        mode: 0744
+        seuser: system_u
+        serole: object_r
+        setype: usr_t
+        selevel: s0
+
+    - name: "Extract"
+      unarchive:
+        src: "/tmp/consul.zip"
+        dest: "/usr/local/bin"
+        remote_src: yes
+        creates: /usr/local/bin/consul
+
+    - name: Set consul Permissions
+      file:
+        path: /usr/local/bin/consul
+        state: file
+        owner: root
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: bin_t
+        selevel: s0
+  tags:
+    - install
+
+- name: Create the Consul Files and Folders
+  block:
+    - name: Main Folder
+      file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: etc_t
+        selevel: s0
+
+    - name: TLS folder
+      file:
+        path: /etc/consul.d/tls
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: etc_t
+        selevel: s0
+
+    - name: Data Folder
+      file:
+        path: "{{consul_data_dir}}"
+        state: directory
+        owner: consul
+        group: consul
+        mode: 0755
+        seuser: system_u
+        serole: object_r
+        setype: cert_t
+        selevel: s0
+  tags:
+    - prepare
+
+- name: Add the consul Service
+  copy:
+    src: consul.service
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: consul
+    mode: 0755
+    seuser: system_u
+    serole: object_r
+    setype: systemd_unit_file_t
+    selevel: s0
+  tags:
+    - configure
+    - install
+
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+  tags:
+    - configure
+    - install
+
+- include_tasks: configure.yml
+  tags:
+    - configure
+
+- name: Restart Consul
+  systemd:
+    name: consul
+    state: reloaded
+    enabled: yes
+  tags:
+    - restart

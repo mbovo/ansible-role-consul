@@ -1,9 +1,60 @@
 
+- name: "Verify presence of an old ca certificate"
+  stat:
+    path: /etc/consul.d/tls/consul-agent-ca.pem
+  register: tls_ca
+  tags:
+    - tls
+
+- name: "Verify presence of an old server certificate"
+  stat:
+    path: "/etc/consul.d/tls/{{ consul_datacenter }}-server-consul-0.pem"
+  register: tls_srv
+  tags:
+    - tls
+
+- name: "Verify presence of an old server key"
+  stat:
+    path: "/etc/consul.d/tls/{{ consul_datacenter }}-server-consul-0-key.pem"
+  register: tls_key
+  tags:
+    - tls
 
 - name: "Generate CA cert/key"
   shell: consul tls ca create
   args:
     chdir: /etc/consul.d/tls
+  when: inventory_hostname == groups['consul_servers'][0] and not tls_ca.stat.exists
+  tags:
+    - tls
+
+- name: "Retrieve generated CA"
+  fetch:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    flat: yes
+  with_items:
+    - src: /etc/consul.d/tls/consul-agent-ca.pem
+      dest: "{{role_path}}/files/consul-agent-ca.pem"
+    - src: /etc/consul.d/tls/consul-agent-ca-key.pem
+      dest:  "{{role_path}}/files/consul-agent-ca-key.pem"
+  when: not tls_ca.stat.exists
+  tags:
+    - tls
+
+- name: "Copy CA on other nodes"
+  copy:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    owner: consul
+    group: consul
+    mode: 0640
+  with_items:
+    - dest: /etc/consul.d/tls/consul-agent-ca.pem
+      src: "consul-agent-ca.pem"
+    - dest: /etc/consul.d/tls/consul-agent-ca-key.pem
+      src:  "consul-agent-ca-key.pem"
+  when: ansible_hostname != groups['consul_servers'][0] and not tls_ca.stat.exists
   tags:
     - tls
 
@@ -11,5 +62,6 @@
   shell: consul tls cert create -server -additional-ipaddress="{{ inventory_hostname }}" -dc="{{ consul_datacenter }}"
   args:
     chdir: /etc/consul.d/tls
+  when: (not tls_srv.stat.exists) or (not tls_key.stat.exists)
   tags:
     - tls

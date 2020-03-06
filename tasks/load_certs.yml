@@ -1,0 +1,16 @@
+
+- name: "Upload CA certs"
+  copy:
+    src: "{{consul_tls_ca_file}}"
+    dest: "/etc/consul.d/tls/consul-agent-ca.pem"
+
+- name: "Upload Server cert"
+  copy:
+    src: "{{consul_tls_server_file}}"
+    dest: "/etc/consul.d/tls/{{ consul_datacenter }}-server-consul-0.pem"
+
+- name: "Upload Server key"
+  copy:
+    src: "{{consul_tls_key_file}}"
+    dest: "/etc/consul.d/tls/{{ consul_datacenter }}-server-consul-0-key.pem"
+
