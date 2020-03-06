@@ -1,7 +1,7 @@
 - name: "Sanity checks"
   fail:
-    msg: "action must be on of [install|delete]"
-  when: action not in ('install','delete')
+    msg: "action must be on of [install|delete|restart]"
+  when: action not in ('install','delete','restart')
 
 - name: "Sanity checks"
   fail:

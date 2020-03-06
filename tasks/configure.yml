@@ -65,3 +65,14 @@
   notify: Restart Consul
   tags:
     - configure
+
+- name: Apply minimal configuration (client)
+  template:
+    src: client.json.j2
+    dest: /etc/consul.d/consul_client.json
+    owner: consul
+    group: consul
+    mode: 0640
+  notify: Restart Consul Client
+  tags:
+    - configure
