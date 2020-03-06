@@ -24,7 +24,9 @@
   shell: consul tls ca create
   args:
     chdir: /etc/consul.d/tls
-  when: inventory_hostname == groups['consul_servers'][0] and not tls_ca.stat.exists
+  run_once: true
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  when: not tls_ca.stat.exists
   tags:
     - tls
 
@@ -38,6 +40,8 @@
       dest: "{{role_path}}/files/consul-agent-ca.pem"
     - src: /etc/consul.d/tls/consul-agent-ca-key.pem
       dest:  "{{role_path}}/files/consul-agent-ca-key.pem"
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  run_once: true
   when: not tls_ca.stat.exists
   tags:
     - tls

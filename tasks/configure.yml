@@ -20,7 +20,7 @@
 
 - name: Generate encryption key
   shell: consul keygen
-  register: consul_key
+  register: consul_generated_key
   ignore_errors: yes
   run_once: true
   delegate_to: "{{groups['consul_servers'][0]}}"
@@ -28,9 +28,18 @@
   tags:
     - configure
 
+- name: "Set encryption key"
+  set_fact:
+    consul_encrypt_key: "{{ consul_generated_key.stdout }}"
+  delegate_to: "{{groups['consul_servers'][0]}}"
+  run_once: true
+  when: not cfg.stat.exists
+  tags:
+    - configure
+
 - name: "Retrieve old encryption key"
   shell: cat /etc/consul.d/consul.json | grep encrypt | sed 's/^.*"\(.*\)".*$/\1/g;'
-  register: consul_key
+  register: consul_retrieved_key
   ignore_errors: yes
   run_once: true
   delegate_to: "{{groups['consul_servers'][0]}}"
@@ -40,10 +49,10 @@
 
 - name: "Set encryption key"
   set_fact:
-    consul_encrypt_key: "{{ consul_key.stdout }}"
-  when: not consul_key.failed
+    consul_encrypt_key: "{{ consul_retrieved_key.stdout }}"
   delegate_to: "{{groups['consul_servers'][0]}}"
   run_once: true
+  when: cfg.stat.exists
   tags:
     - configure
 
