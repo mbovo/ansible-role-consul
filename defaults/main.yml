@@ -10,6 +10,7 @@ consul_sha256: "sha256:09f3583c6cd7b1f748c0c012ce9b3d96de95a6c0d2334327b74f7d72b
 # Datacenter name 
 consul_datacenter: dc1
 consul_data_dir: /opt/consul
+consul_log_level: DEBUG
 
 # Use TLS for consul
 consul_use_tls: false
