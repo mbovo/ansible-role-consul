@@ -15,7 +15,21 @@
 - name: "Verify presence of an old server key"
   stat:
     path: "/etc/consul.d/tls/{{ consul_datacenter }}-server-consul-0-key.pem"
-  register: tls_key
+  register: tls_srv_key
+  tags:
+    - tls
+
+- name: "Verify presence of an old client certificate"
+  stat:
+    path: "/etc/consul.d/tls/{{ consul_datacenter }}-client-consul-0.pem"
+  register: tls_cli
+  tags:
+    - tls
+
+- name: "Verify presence of an old client key"
+  stat:
+    path: "/etc/consul.d/tls/{{ consul_datacenter }}-client-consul-0-key.pem"
+  register: tls_cli_key
   tags:
     - tls
 
@@ -57,7 +71,7 @@
       src: "consul-agent-ca.pem"
     - dest: /etc/consul.d/tls/consul-agent-ca-key.pem
       src:  "consul-agent-ca-key.pem"
-  when: ansible_hostname != groups['consul_servers'][0] and not tls_ca.stat.exists
+  when: inventory_hostname != groups['consul_servers'][0] and not tls_ca.stat.exists
   tags:
     - tls
 
@@ -65,6 +79,22 @@
   shell: consul tls cert create -server -additional-ipaddress="{{ inventory_hostname }}" -dc="{{ consul_datacenter }}"
   args:
     chdir: /etc/consul.d/tls
-  when: (not tls_srv.stat.exists) or (not tls_key.stat.exists)
+  when: (not tls_srv.stat.exists) or (not tls_srv_key.stat.exists) and inventory_hostname in groups['consul_servers']
+  tags:
+    - tls
+
+- name: "Generate Client cert/key"
+  shell: consul tls cert create -client -additional-ipaddress="{{ inventory_hostname }}" -dc="{{ consul_datacenter }}"
+  args:
+    chdir: /etc/consul.d/tls
+  when: (not tls_cli.stat.exists) or (not tls_cli_key.stat.exists) and inventory_hostname in groups['consul_clients']
+  tags:
+    - tls
+
+- name: "Cleanup CA key from nodes"
+  file:
+    path: /etc/consul.d/tls/consul-agent-ca-key.pem
+    state: absent
+  when: inventory_hostname != groups['consul_servers'][0]
   tags:
     - tls

@@ -5,6 +5,14 @@
     name: consul
     state: stopped
   ignore_errors: true
+  when: inventory_hostname in groups['consul_servers']
+
+- name: Restart Consul Client
+  systemd:
+    name: consul_client
+    state: stopped
+  ignore_errors: true
+  when: inventory_hostname in groups['consul_clients']
 
 - name: Delete the Consul Files and Folders
   block:
@@ -17,11 +25,25 @@
       file:
         path: "{{ consul_data_dir }}"
         state: absent
+      when: inventory_hostname in groups['consul_servers']
+
+    - name: Client Data Folder
+      file:
+        path: "{{ consul_client_data_dir }}"
+        state: absent
+      when: inventory_hostname in groups['consul_clients']
 
     - name: consul service
       file:
         path: /etc/systemd/system/consul.service
         state: absent
+      when: inventory_hostname in groups['consul_servers']
+
+    - name: consul service
+      file:
+        path: /etc/systemd/system/consul_client.service
+        state: absent
+      when: inventory_hostname in groups['consul_clients']
 
     - name: Reload systemd
       systemd:
