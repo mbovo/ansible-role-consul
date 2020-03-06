@@ -35,7 +35,7 @@ galaxy_info:
     #  - squeeze
     #  - wheez
 
-  galaxy_tags: 
+  galaxy_tags:
     - networking
     - consul
 

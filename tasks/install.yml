@@ -30,13 +30,13 @@
     - prepare
 
 # fetch url
-- name: "Install Consul {{consul_version}}"
+- name: "Install Consul {{ consul_version }}"
   block:
     - name: "Download consul binary"
       get_url:
         url: "{{ consul_download_url }}"
-        dest: "{{role_path}}/files/consul.zip"
-        checksum: "{{consul_sha256}}"
+        dest: "{{ role_path }}/files/consul.zip"
+        checksum: "{{ consul_sha256 }}"
       run_once: true
       delegate_to: localhost
 
@@ -101,7 +101,7 @@
 
     - name: Data Folder
       file:
-        path: "{{consul_data_dir}}"
+        path: "{{ consul_data_dir }}"
         state: directory
         owner: consul
         group: consul

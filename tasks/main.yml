@@ -1,4 +1,3 @@
-
 - name: "Sanity checks"
   fail:
     msg: "action must be on of [install|delete]"
@@ -9,7 +8,7 @@
     msg: "You cannot use both consul_tls_generate and consul_tls_provided"
   when: consul_use_tls and consul_tls_generate and consul_tls_provided
 
-- include_tasks: "{{action}}.yml"
+- include_tasks: "{{ action }}.yml"
   tags:
     - install
     - tls

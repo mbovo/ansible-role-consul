@@ -15,7 +15,7 @@
 
     - name: Data Folder
       file:
-        path: "{{consul_data_dir}}"
+        path: "{{ consul_data_dir }}"
         state: absent
 
     - name: consul service
